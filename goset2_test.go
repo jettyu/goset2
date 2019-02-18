@@ -2,6 +2,7 @@ package goset2_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/jettyu/goset2"
@@ -102,5 +103,26 @@ func TestIntersection(t *testing.T) {
 
 	if !goset2.Ints(except).Equal(sec.Slice()) {
 		t.Fatal(sec.Slice())
+	}
+}
+
+func TestReflectErase(t *testing.T) {
+	arr := []int{0, 1, 2, 3, 4, 5}
+	rv := reflect.ValueOf(arr)
+	rv = goset2.ReflectErase(rv, 0)
+	if !goset2.Ints(rv.Interface().([]int)).Equal([]int{1, 2, 3, 4, 5}) {
+		t.Fatal(rv.Interface())
+	}
+	rv = goset2.ReflectErase(rv, 1)
+	if !goset2.Ints(rv.Interface().([]int)).Equal([]int{1, 3, 4, 5}) {
+		t.Fatal(rv.Interface())
+	}
+	rv = goset2.ReflectErase(rv, 3)
+	if !goset2.Ints(rv.Interface().([]int)).Equal([]int{1, 3, 4}) {
+		t.Fatal(rv.Interface())
+	}
+	rv = goset2.ReflectErase(rv, 3)
+	if !goset2.Ints(rv.Interface().([]int)).Equal([]int{1, 3, 4}) {
+		t.Fatal(rv.Interface())
 	}
 }

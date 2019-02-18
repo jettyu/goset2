@@ -26,11 +26,21 @@ func ReflectMove(rv reflect.Value, dstPos, srcPos, n int) {
 	reflect.Copy(rv.Slice(dstPos, dstPos+n), rv.Slice(srcPos, srcPos+n))
 }
 
-func ReflectInsertAt(slice reflect.Value, v reflect.Value, pos, place int) (newSlice reflect.Value) {
+func ReflectInsertAt(slice reflect.Value, v reflect.Value, pos int) (newSlice reflect.Value) {
 	newSlice = reflect.Append(slice, v)
 	ReflectMove(newSlice, pos+1, pos, newSlice.Len()-(pos+1))
-	newSlice.Index(place).Set(v)
+	newSlice.Index(pos).Set(v)
 	return
+}
+
+func ReflectErase(slice reflect.Value, pos int) reflect.Value {
+	if pos >= slice.Len() {
+		return slice
+	}
+	if pos < slice.Len()-1 {
+		ReflectMove(slice, pos, pos+1, slice.Len()-(pos+1))
+	}
+	return slice.Slice(0, slice.Len()-1)
 }
 
 type set struct {
@@ -162,7 +172,7 @@ func (p *set) InsertSlice(slice interface{}, sorted bool) (added int) {
 			pos--
 		}
 		added++
-		p.rv = ReflectInsertAt(p.rv, ri, pos, n)
+		p.rv = ReflectInsertAt(p.rv, ri, n)
 		if pos > 0 {
 			pos--
 		}
@@ -191,7 +201,7 @@ func (p *set) InsertOne(v interface{}) (added int) {
 		pos--
 	}
 
-	p.rv = ReflectInsertAt(p.rv, reflect.ValueOf(v), pos, n)
+	p.rv = ReflectInsertAt(p.rv, reflect.ValueOf(v), n)
 	added++
 	return
 }
@@ -205,8 +215,7 @@ func (p *set) EraseOne(v interface{}) (deled int) {
 	if pos == p.rv.Len() || !p.equal(p.rv.Index(pos).Interface(), v) {
 		return
 	}
-	ReflectMove(p.rv, pos, pos+1, p.rv.Len()-(pos+1))
-	p.rv = p.rv.Slice(0, p.rv.Len()-1)
+	p.rv = ReflectErase(p.rv, pos)
 	deled = 1
 	return
 }
@@ -227,8 +236,7 @@ func (p *set) EraseSlice(slice interface{}, sorted bool) (deled int) {
 		if pos == p.rv.Len() || !p.equal(p.rv.Index(pos).Interface(), v) {
 			continue
 		}
-		ReflectMove(p.rv, pos, pos+1, p.rv.Len()-(pos+1))
-		p.rv = p.rv.Slice(0, p.rv.Len()-1)
+		p.rv = ReflectErase(p.rv, pos)
 		deled++
 	}
 
