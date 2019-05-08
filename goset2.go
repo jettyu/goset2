@@ -1,6 +1,7 @@
 package goset2
 
 import (
+	"sync"
 	"reflect"
 	"sort"
 )
@@ -22,37 +23,8 @@ type Set interface {
 	Intersection(s Set) Set
 }
 
-func ReflectMove(rv reflect.Value, dstPos, srcPos, n int) {
-	reflect.Copy(rv.Slice(dstPos, dstPos+n), rv.Slice(srcPos, srcPos+n))
-}
 
-func ReflectInsertAt(slice reflect.Value, v reflect.Value, pos int) (newSlice reflect.Value) {
-	newSlice = reflect.Append(slice, v)
-	ReflectMove(newSlice, pos+1, pos, newSlice.Len()-(pos+1))
-	newSlice.Index(pos).Set(v)
-	return
-}
-
-func ReflectErase(slice reflect.Value, pos int) reflect.Value {
-	if pos >= slice.Len() {
-		return slice
-	}
-	if pos < slice.Len()-1 {
-		ReflectMove(slice, pos, pos+1, slice.Len()-(pos+1))
-	}
-	return slice.Slice(0, slice.Len()-1)
-}
-
-type set struct {
-	rv       reflect.Value
-	less     func(s1, s2 interface{}) bool
-	equal    func(s1, s2 interface{}) bool
-	swaper   func(i, j int)
-	lessFunc func(slice interface{}) func(i, j int) bool
-}
-
-var _ Set = (*set)(nil)
-
+// New ...
 func New(slice interface{},
 	less func(s1, s2 interface{}) bool,
 	equal ...func(s1, s2 interface{}) bool,
@@ -84,6 +56,133 @@ func New(slice interface{},
 	}
 	return s
 }
+
+// NewSafe ...
+func NewSafe(s Set) Set {
+	return &safeSet{
+		set:s,
+	}
+}
+
+// SafeSet ...
+type safeSet struct {
+	set Set
+	sync.RWMutex
+}
+
+// var _ Set = (*safeSet)(nil)
+
+func (p *safeSet) Len() int {
+	p.RLock()
+	n := p.set.Len()
+	p.RUnlock()
+	return n
+}
+
+func (p *safeSet) Slice() interface{} {
+	p.RLock()
+	s := p.set.Clone()
+	p.RUnlock()
+	return s.Slice()
+}
+
+func (p *safeSet) Search(v interface{}, pos int) int {
+	p.RLock()
+	n := p.set.Search(v,pos)
+	p.RUnlock()
+	return n
+}
+
+func (p *safeSet) Has(v interface{}, pos int) bool {
+	p.RLock()
+	ok := p.set.Has(v,pos)
+	p.RUnlock()
+	return ok
+}
+
+func (p *safeSet) Insert(v ...interface{}) int {
+	p.Lock()
+	n := p.set.Insert(v...)
+	p.Unlock()
+	return n
+}
+
+func (p *safeSet) Erase(v ...interface{}) int {
+	p.Lock()
+	n := p.set.Erase(v...)
+	p.Unlock()
+	return n
+}
+
+func (p *safeSet) Equal(slice interface{}) bool {
+	p.RLock()
+	ok := p.set.Equal(slice)
+	p.RUnlock()
+	return ok
+}
+
+func (p *safeSet) Clone() Set {
+	p.RLock()
+	s := p.set.Clone()
+	p.RUnlock()
+	return &safeSet{
+		set:s,
+	}
+}
+
+func (p *safeSet) Zero() Set {
+	return &safeSet{
+		set:p.set.Zero(),
+	}
+}
+
+func (p *safeSet) SetSlice(slice interface{}) Set {
+	p.Lock()
+	p.set.SetSlice(slice)
+	p.Unlock()
+	return p
+}
+
+func (p *safeSet) Intersection(s Set) Set {
+	p.Lock()
+	p.set.Intersection(s)
+	p.Unlock()
+	return p
+}
+
+// ReflectMove ...
+func ReflectMove(rv reflect.Value, dstPos, srcPos, n int) {
+	reflect.Copy(rv.Slice(dstPos, dstPos+n), rv.Slice(srcPos, srcPos+n))
+}
+
+// ReflectInsertAt ...
+func ReflectInsertAt(slice reflect.Value, v reflect.Value, pos int) (newSlice reflect.Value) {
+	newSlice = reflect.Append(slice, v)
+	ReflectMove(newSlice, pos+1, pos, newSlice.Len()-(pos+1))
+	newSlice.Index(pos).Set(v)
+	return
+}
+
+// ReflectErase ...
+func ReflectErase(slice reflect.Value, pos int) reflect.Value {
+	if pos >= slice.Len() {
+		return slice
+	}
+	if pos < slice.Len()-1 {
+		ReflectMove(slice, pos, pos+1, slice.Len()-(pos+1))
+	}
+	return slice.Slice(0, slice.Len()-1)
+}
+
+type set struct {
+	rv       reflect.Value
+	less     func(s1, s2 interface{}) bool
+	equal    func(s1, s2 interface{}) bool
+	swaper   func(i, j int)
+	lessFunc func(slice interface{}) func(i, j int) bool
+}
+
+var _ Set = (*set)(nil)
 
 func (p set) Len() int {
 	return p.rv.Len()
