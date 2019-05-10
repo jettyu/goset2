@@ -19,7 +19,7 @@ type Set interface {
 	Equal(slice interface{}) bool
 	Clone() Set
 	Zero() Set
-	SetSlice(slice interface{}) Set
+	New(slice interface{}, sorted bool) Set
 	Intersection(s Set) Set
 }
 
@@ -136,11 +136,10 @@ func (p *safeSet) Zero() Set {
 	}
 }
 
-func (p *safeSet) SetSlice(slice interface{}) Set {
-	p.Lock()
-	p.set.SetSlice(slice)
-	p.Unlock()
-	return p
+func (p *safeSet) New(slice interface{}, sorted bool) Set {
+	return &safeSet{
+		set:p.set.New(slice,sorted),
+	}
 }
 
 func (p *safeSet) Intersection(s Set) Set {
@@ -359,16 +358,10 @@ func (p set) Equal(slice interface{}) bool {
 func (p set) Clone() Set {
 	rv := reflect.MakeSlice(p.rv.Type(), p.rv.Len(), p.rv.Len())
 	reflect.Copy(rv, p.rv)
-	return &set{
-		lessFunc: p.lessFunc,
-		less:     p.less,
-		equal:    p.equal,
-		rv:       rv,
-		swaper:   p.swaper,
-	}
+	return p.new(rv)
 }
 
-func (p set) Intersection(s Set) (dstSlice Set) {
+func (p *set) Intersection(s Set) Set {
 	pos := 0
 	rv := s.(*set).rv
 	dst := reflect.Zero(p.rv.Type())
@@ -383,20 +376,31 @@ func (p set) Intersection(s Set) (dstSlice Set) {
 		if p.equal(v.Interface(), e) {
 			dst = reflect.Append(dst, v)
 		}
-	}
-	dstSlice = p.Zero()
-	dstSlice.(*set).rv = dst
-	return
+	}	
+	return p.new(dst)
 }
 
-func (p set) Zero() Set {
+func (p *set) new(rv reflect.Value) *set {
 	return &set{
 		lessFunc: p.lessFunc,
 		less:     p.less,
 		equal:    p.equal,
 		swaper:   p.swaper,
-		rv:       reflect.Zero(p.rv.Type()),
+		rv:rv,
 	}
+}
+
+func (p *set) Zero() Set {
+	return p.new(reflect.Zero(p.rv.Type()))
+}
+
+func (p *set) New(slice interface{}, sorted bool) Set {
+	if sorted {
+		return p.new(reflect.ValueOf(slice))
+	} 
+		s := p.Zero()
+		s.Insert(slice)
+		return s
 }
 
 func (p *set) SetSlice(slice interface{}) Set {

@@ -49,6 +49,10 @@ func TestStrings(t *testing.T) {
 			t.Fatal(arr)
 		}
 	}
+	ins := s.Intersection(goset2.Strings([]string{"1","2","4","6"}))
+	if !ins.Equal([]string{"2","4"}) {
+		t.Fatal(ins.Slice())
+	}
 }
 
 func TestInts(t *testing.T) {
