@@ -12,9 +12,9 @@ type Set interface {
 	Slice() interface{}
 	Search(v interface{}, pos int) int
 	Has(v interface{}, pos int) bool
-
 	Insert(v ...interface{}) int
 	Erase(v ...interface{}) int
+	ReSort()
 
 	Equal(slice interface{}) bool
 	Clone() Set
@@ -147,6 +147,12 @@ func (p *safeSet) Intersection(s Set) Set {
 	p.set.Intersection(s)
 	p.Unlock()
 	return p
+}
+
+func (p *safeSet) ReSort() {
+	p.Lock()
+	p.set.ReSort()
+	p.Unlock()
 }
 
 // ReflectMove ...
@@ -406,6 +412,10 @@ func (p *set) New(slice interface{}, sorted bool) Set {
 func (p *set) SetSlice(slice interface{}) Set {
 	p.rv = reflect.ValueOf(slice)
 	return p
+}
+
+func (p *set) ReSort() {
+	p.sort(p.Slice())
 }
 
 var (

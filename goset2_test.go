@@ -53,6 +53,11 @@ func TestStrings(t *testing.T) {
 	if !ins.Equal([]string{"2","4"}) {
 		t.Fatal(ins.Slice())
 	}
+	ins.Slice().([]string)[0] = "5"
+	ins.ReSort()
+	if !ins.Equal([]string{"4","5"}) {
+		t.Fatal(ins.Slice())
+	}
 }
 
 func TestInts(t *testing.T) {
