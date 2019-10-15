@@ -404,9 +404,9 @@ func (p *set) New(slice interface{}, sorted bool) Set {
 	if sorted {
 		return p.new(reflect.ValueOf(slice))
 	} 
-		s := p.Zero()
-		s.Insert(slice)
-		return s
+	s := p.Zero()
+	s.Insert(slice)
+	return s
 }
 
 func (p *set) SetSlice(slice interface{}) Set {
