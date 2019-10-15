@@ -49,13 +49,13 @@ func TestStrings(t *testing.T) {
 			t.Fatal(arr)
 		}
 	}
-	ins := s.Intersection(goset2.Strings([]string{"1","2","4","6"}))
-	if !ins.Equal([]string{"2","4"}) {
+	ins := s.Intersection(goset2.Strings([]string{"1", "2", "4", "6"}))
+	if !ins.Equal([]string{"2", "4"}) {
 		t.Fatal(ins.Slice())
 	}
 	ins.Slice().([]string)[0] = "5"
 	ins.ReSort()
-	if !ins.Equal([]string{"4","5"}) {
+	if !ins.Equal([]string{"4", "5"}) {
 		t.Fatal(ins.Slice())
 	}
 }
